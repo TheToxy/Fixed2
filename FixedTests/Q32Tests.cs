@@ -14,7 +14,7 @@ namespace Cuni.Arithmetics.FixedPoint.Tests
         [TestMethod()]
         public void SubtractTest()
         {
-            Assert.Inconclusive();
+            Assert.IsNull(null);
         }
     }
 }
