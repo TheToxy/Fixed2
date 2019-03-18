@@ -14,8 +14,8 @@ namespace Cuni.Arithmetics.FixedPoint
         int Subtract(Q32 a);
         double DoubleValue { get; }
 
-        Q32 WithInt(int a);
-        Q32 WithRawInt(int a);
+        Q32 WithValue(int a);
+        Q32 WithRawValue(int a);
 
 
         //int GetFractionLength { get; }
@@ -30,49 +30,41 @@ namespace Cuni.Arithmetics.FixedPoint
             return ((double)this).ToString();
         }
 
-        //private static int FractionLen;
-
-        //static Fixed()
-        //{
-        //    //System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(T).TypeHandle);
-        //    FractionLen = new T().GetFractionLength;
-        //}
-
-        private Fixed(Q32 fixedPoint)
+        internal Fixed(Q32 fixedPoint)
         {
             FixedPoint = fixedPoint;
         }
-        public Fixed(int number) : this(new T().WithInt(number)) { }
+        public Fixed(int number) : this(new T().WithValue(number)) { }
+
         public Fixed<T> Multiply(Fixed<T> other)
         {
             var newNumber = FixedPoint.Multilpy(other.FixedPoint);
-            var a = new Fixed<T>(new T().WithRawInt(newNumber));
-            //Console.WriteLine($"Fixed:  GetType: {this.GetType()} Fixed<{a}> typeof: {typeof(T)} ");
+            var a = new Fixed<T>(new T().WithRawValue(newNumber));            
             return a;
         }
 
         public Fixed<T> Add(Fixed<T> other)
         {
             int number = FixedPoint.Add(other.FixedPoint);
-            var a = new Fixed<T>(new T().WithRawInt(number));
+            var a = new Fixed<T>(new T().WithRawValue(number));
             return a;
         }
 
         public Fixed<T> Subtract(Fixed<T> other)
         {
             int number = FixedPoint.Subtract(other.FixedPoint);
-            var a = new Fixed<T>(new T().WithRawInt(number));
+            var a = new Fixed<T>(new T().WithRawValue(number));
             return a;
         }
 
         public Fixed<T> Divide(Fixed<T> other)
         {
             int number = FixedPoint.Divide(other.FixedPoint);
-            var a = new Fixed<T>(new T().WithRawInt(number));
+            var a = new Fixed<T>(new T().WithRawValue(number));
             return a;
         }
 
-        public static explicit operator double(Fixed<T> number)
+        public static implicit operator double(Fixed<T> number)
         {
             return number.FixedPoint.DoubleValue;
         }
@@ -83,20 +75,23 @@ namespace Cuni.Arithmetics.FixedPoint
         public static int IntegerLength = 32;
         public static int FractionLength;
 
-        internal long RawIntegerValue { get; }
+        /// <summary>
+        /// To make it easy when using arithmetics
+        /// </summary>
+        internal long RawLongValue { get; }
 
         internal int IntIntegerValue
         {
             get
             {
-                return (int)(RawIntegerValue >> FractionLength);
+                return (int)(RawLongValue >> FractionLength);
             }
         }
         internal int IntDecimalValue
         {
             get
             {
-                return (int)(RawIntegerValue << (IntegerLength - FractionLength)) >> (IntegerLength - FractionLength);
+                return (int)(RawLongValue << (IntegerLength - FractionLength)) >> (IntegerLength - FractionLength);
             }
         }
         internal double DoubleDecimalValue
@@ -115,41 +110,47 @@ namespace Cuni.Arithmetics.FixedPoint
         }
         protected Q32(int number)
         {
-            RawIntegerValue = number;
+            RawLongValue = number;
         }
 
         public int Multilpy(Q32 a)
         {
-            long num = (long)this.RawIntegerValue * (long)a.RawIntegerValue;
-            //Console.WriteLine(this.GetType() + "Q32" +  typeof(Q32));                    
+            long num = this.RawLongValue * a.RawLongValue;
             return (int)(num >> FractionLength);
         }
 
         public int Divide(Q32 a)
         {
-            long num = (this.RawIntegerValue << FractionLength + 1) / a.RawIntegerValue;
-            //if (a.RawIntegerValue > this.RawIntegerValue)
-            //{
-            //    int positiveOne = 1 << FractionLength;
-            //    num += positiveOne;
-            //}                                
+            long num = (this.RawLongValue << FractionLength) / a.RawLongValue;
+            // Divisor is greater than Dividened OR result is lower than zero
+            if(this.RawLongValue == a.RawLongValue ||
+                this.RawLongValue == -a.RawLongValue)
+            {
+                return (int)num;
+            }
+            if (a.RawLongValue > this.RawLongValue ||
+                num < 0 << FractionLength)
+            {
+                int positiveOne = 1 << FractionLength;
+                num += positiveOne;
+            }
             return (int)num;
         }
 
         public int Add(Q32 a)
         {
-            long num = this.RawIntegerValue + a.RawIntegerValue;                           
+            long num = this.RawLongValue + a.RawLongValue;                           
             return (int)num;
         }
 
         public int Subtract(Q32 a)
         {
-            long num = this.RawIntegerValue - a.RawIntegerValue;                              
+            long num = this.RawLongValue - a.RawLongValue;                              
             return (int)num;
         }
     }
 
-    public class Q24_8 : Q32, IArithmetics
+    public sealed class Q24_8 : Q32, IArithmetics
     {
         static Q24_8()
         {
@@ -160,12 +161,12 @@ namespace Cuni.Arithmetics.FixedPoint
 
         public Q24_8() : base(0) { }
 
-        public Q32 WithInt(int number)
+        public Q32 WithValue(int number)
         {
             return new Q24_8(number << FractionLength);
         }
 
-        public Q32 WithRawInt(int number)
+        public Q32 WithRawValue(int number)
         {
             return new Q24_8(number);
         }
@@ -177,7 +178,7 @@ namespace Cuni.Arithmetics.FixedPoint
 
     }
 
-    public class Q16_16 : Q32, IArithmetics
+    public sealed class Q16_16 : Q32, IArithmetics
     {
         static Q16_16()
         {
@@ -188,18 +189,18 @@ namespace Cuni.Arithmetics.FixedPoint
 
         public Q16_16() : base(0) { }
 
-        public Q32 WithInt(int number)
+        public Q32 WithValue(int number)
         {
             return new Q16_16(number << FractionLength);
         }
 
-        public Q32 WithRawInt(int number)
+        public Q32 WithRawValue(int number)
         {
             return new Q16_16(number);
         }
     }
 
-    public class Q8_24 : Q32, IArithmetics
+    public sealed class Q8_24 : Q32, IArithmetics
     {
         static Q8_24()
         {
@@ -210,12 +211,11 @@ namespace Cuni.Arithmetics.FixedPoint
 
         public Q8_24() : base(0) { }
 
-        public Q32 WithInt(int number)
+        public Q32 WithValue(int number)
         {
             return new Q8_24(number << FractionLength);
         }
-
-        public Q32 WithRawInt(int number)
+        public Q32 WithRawValue(int number)
         {
             return new Q8_24(number);
         }
